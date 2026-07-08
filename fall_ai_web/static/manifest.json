@@ -1,0 +1,17 @@
+{
+  "name": "RDK X5 智能平台",
+  "short_name": "RDK X5",
+  "description": "RDK X5 摔倒检测与AI对话平台",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0c29",
+  "theme_color": "#302b63",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/api/icon",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "alerts": [
+    {
+      "id": 1,
+      "time": "2026-07-09 04:11:31",
+      "type": "fall",
+      "detail": "检测到有人摔倒 (1人)",
+      "people": 1,
+      "fps": 19,
+      "acknowledged": false,
+      "ack_time": null
+    }
+  ],
+  "next_id": 2
+}

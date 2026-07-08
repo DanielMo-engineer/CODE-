@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置 — RDK X5 智能平台</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;
+    min-height:100vh;
+    background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+    color:#fff;padding:0;
+    display:flex;flex-direction:column;
+  }
+  .header{
+    background:rgba(255,255,255,0.06);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:14px 20px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .header .back{
+    color:#a0a0d0;text-decoration:none;font-size:1.2rem;
+    width:36px;height:36px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .3s;
+  }
+  .header .back:hover{background:rgba(255,255,255,0.1)}
+  .header h1{font-size:1.1rem;font-weight:600}
+  .content{max-width:600px;margin:0 auto;padding:20px;width:100%;flex:1}
+  .card{
+    background:rgba(255,255,255,0.06);
+    backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px;padding:20px;margin-bottom:16px;
+  }
+  .card h3{font-size:1rem;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .card .desc{color:#8080a0;font-size:0.8rem;margin-bottom:14px}
+  .card label{display:block;font-size:0.8rem;color:#a0a0c0;margin-bottom:4px}
+  .card input[type="text"],.card input[type="password"],.card input[type="url"]{
+    width:100%;padding:10px 14px;border-radius:10px;
+    border:1px solid rgba(255,255,255,0.12);
+    background:rgba(255,255,255,0.06);
+    color:#fff;font-size:0.9rem;outline:none;
+    transition:border-color .3s;font-family:inherit;
+  }
+  .card input:focus{border-color:rgba(102,126,234,0.6)}
+  .card input::placeholder{color:#606080}
+  .card .hint{font-size:0.7rem;color:#606080;margin-top:4px}
+  .btn-row{display:flex;gap:8px;margin-top:12px}
+  .btn{
+    padding:8px 20px;border-radius:10px;border:none;
+    font-size:0.85rem;cursor:pointer;transition:all .3s;
+    font-weight:500;
+  }
+  .btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(102,126,234,0.3)}
+  .btn-secondary{background:rgba(255,255,255,0.08);color:#a0a0c0;border:1px solid rgba(255,255,255,0.1)}
+  .btn-secondary:hover{background:rgba(255,255,255,0.12)}
+  .btn-success{background:rgba(76,175,80,0.8);color:#fff}
+  .btn-danger{background:rgba(244,67,54,0.8);color:#fff}
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    padding:10px 24px;border-radius:12px;font-size:0.85rem;
+    z-index:9999;opacity:0;transition:opacity .3s;
+    pointer-events:none;text-align:center;max-width:90vw;
+  }
+  .toast.show{opacity:1}
+  .toast.success{background:rgba(76,175,80,0.9);color:#fff}
+  .toast.error{background:rgba(244,67,54,0.9);color:#fff}
+  .toast.info{background:rgba(102,126,234,0.9);color:#fff}
+  .loading-dots::after{content:'';animation:dots 1.2s steps(3,end) infinite}
+  @keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+  .status-label{font-size:0.75rem;color:#8080a0;margin-top:4px}
+  .status-label.ok{color:#4caf50}
+  .status-label.err{color:#f44336}
+  .divider{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:12px 0}
+  .section-header{font-size:0.75rem;color:#606080;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px}
+</style>
+</head>
+<body>
+  <div class="header">
+    <a class="back" href="/">←</a>
+    <h1>⚙️ 设置</h1>
+  </div>
+
+  <div class="content">
+    <!-- AI 配置 -->
+    <div class="section-header">🤖 AI 对话</div>
+    <div class="card">
+      <h3>🔑 DeepSeek API Key</h3>
+      <div class="desc">用于 AI 智能对话，从 <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color:#667eea">platform.deepseek.com</a> 获取</div>
+      <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+      <div class="hint" id="keyStatus">当前: 未配置</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+        <button class="btn btn-secondary" onclick="testDeepSeek()">测试连接</button>
+      </div>
+    </div>
+
+    <!-- 摄像头配置 -->
+    <div class="section-header">📷 摄像头</div>
+    <div class="card">
+      <h3>🔗 摄像头地址</h3>
+      <div class="desc">摔倒检测服务的地址，默认运行在本机 8080 端口</div>
+      <input type="url" id="cameraUrl" placeholder="http://127.0.0.1:8080" />
+      <div class="hint" id="cameraStatus">当前: 检测中...</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveCameraUrl()">保存</button>
+        <button class="btn btn-secondary" onclick="testCamera()">测试连接</button>
+      </div>
+    </div>
+
+    <!-- 网络信息 -->
+    <div class="section-header">🌐 网络</div>
+    <div class="card">
+      <h3>📡 访问地址</h3>
+      <div class="desc">通过以下地址访问本平台</div>
+      <div style="background:rgba(0,0,0,0.2);border-radius:10px;padding:12px;font-size:0.8rem;line-height:1.8;font-family:monospace">
+        <div>📍 局域网: <span id="localUrl" style="color:#a0b0ff">获取中...</span></div>
+        <div>🌍 公网隧道: <span id="publicUrl" style="color:#a0b0ff">获取中...</span></div>
+        <div>📡 摄像头: <span id="cameraUrlDisplay" style="color:#a0b0ff">获取中...</span></div>
+      </div>
+      <hr class="divider">
+      <h3>💡 提示</h3>
+      <div class="desc">
+        1. 公网隧道地址<strong>不会随 IP 变化</strong>，推荐使用<br>
+        2. 添加到手机主屏幕后，板子关机也能打开查看离线状态<br>
+        3. 如果在局域网内，直接用局域网地址速度更快
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+<script>
+  // ═══ 加载当前设置 ═══
+  async function loadSettings() {
+    try {
+      const resp = await fetch('/api/settings');
+      const data = await resp.json();
+      document.getElementById('apiKey').value = data.DEEPSEEK_API_KEY || '';
+      document.getElementById('cameraUrl').value = data.CAMERA_URL || 'http://127.0.0.1:8080';
+      document.getElementById('keyStatus').textContent = data.DEEPSEEK_API_KEY_MASKED
+        ? '已配置: ' + data.DEEPSEEK_API_KEY_MASKED
+        : '当前: 未配置';
+      document.getElementById('cameraStatus').textContent = '当前: ' + (data.CAMERA_URL || 'http://127.0.0.1:8080');
+    } catch(e) {
+      showToast('加载设置失败: ' + e.message, 'error');
+    }
+  }
+
+  // ═══ 网络信息 ═══
+  async function loadNetworkInfo() {
+    try {
+      const ipResp = await fetch('/api/ip');
+      const ipData = await ipResp.json();
+      document.getElementById('localUrl').textContent = `http://${ipData.ip}:${ipData.port}`;
+      document.getElementById('cameraUrlDisplay').textContent = document.getElementById('cameraUrl').value;
+    } catch(e) {}
+  }
+
+  // ═══ 保存设置 ═══
+  async function saveApiKey() {
+    const key = document.getElementById('apiKey').value.trim();
+    if (!key) { showToast('请输入 API Key', 'error'); return; }
+    try {
+      const resp = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({DEEPSEEK_API_KEY: key})
+      });
+      const data = await resp.json();
+      showToast(data.message || '已保存 ✅', 'success');
+      document.getElementById('keyStatus').textContent = '已配置: ' + key.slice(0,8) + '****';
+    } catch(e) {
+      showToast('保存失败: ' + e.message, 'error');
+    }
+  }
+
+  async function saveCameraUrl() {
+    const url = document.getElementById('cameraUrl').value.trim();
+    if (!url) { showToast('请输入摄像头地址', 'error'); return; }
+    try {
+      const resp = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({CAMERA_URL: url})
+      });
+      const data = await resp.json();
+      showToast(data.message || '已保存 ✅', 'success');
+      document.getElementById('cameraStatus').textContent = '当前: ' + url;
+      document.getElementById('cameraUrlDisplay').textContent = url;
+    } catch(e) {
+      showToast('保存失败: ' + e.message, 'error');
+    }
+  }
+
+  // ═══ 测试连接 ═══
+  async function testDeepSeek() {
+    const key = document.getElementById('apiKey').value.trim();
+    if (!key) { showToast('请先输入 API Key', 'error'); return; }
+    const btn = event.target;
+    btn.textContent = '测试中...'; btn.disabled = true;
+    try {
+      const resp = await fetch('/api/settings/test', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({target: 'deepseek', api_key: key})
+      });
+      const data = await resp.json();
+      showToast(data.message, data.ok ? 'success' : 'error');
+    } catch(e) {
+      showToast('测试失败: ' + e.message, 'error');
+    }
+    btn.textContent = '测试连接'; btn.disabled = false;
+  }
+
+  async function testCamera() {
+    const url = document.getElementById('cameraUrl').value.trim();
+    if (!url) { showToast('请输入摄像头地址', 'error'); return; }
+    const btn = event.target;
+    btn.textContent = '测试中...'; btn.disabled = true;
+    try {
+      const resp = await fetch('/api/settings/test', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({target: 'camera', url: url})
+      });
+      const data = await resp.json();
+      showToast(data.message, data.ok ? 'success' : 'error');
+    } catch(e) {
+      showToast('测试失败: ' + e.message, 'error');
+    }
+    btn.textContent = '测试连接'; btn.disabled = false;
+  }
+
+  // ═══ Toast 提示 ═══
+  function showToast(msg, type = 'info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type + ' show';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ═══ 初始化 ═══
+  loadSettings();
+  loadNetworkInfo();
+</script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系统架构 — RDK X5 智能平台</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;
+    min-height:100vh;
+    background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+    color:#fff;
+  }
+  .header{
+    background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;
+  }
+  .header .back{color:#a0a0d0;text-decoration:none;font-size:1.2rem;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  .header .back:hover{background:rgba(255,255,255,0.1)}
+  .header h1{font-size:1.05rem;font-weight:600}
+  .content{max-width:780px;margin:0 auto;padding:16px}
+
+  .section{margin-bottom:24px}
+  .section-title{
+    font-size:0.9rem;font-weight:600;color:#a0a0c0;
+    margin-bottom:12px;display:flex;align-items:center;gap:8px;
+  }
+  .section-title .line{flex:1;height:1px;background:rgba(255,255,255,0.08)}
+
+  .card{
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px;padding:20px;
+  }
+  .card + .card{margin-top:12px}
+
+  .card h3{font-size:1rem;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .card p,.card li{font-size:0.82rem;line-height:1.8;color:#b0b0d0}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:3px}
+  .card .highlight{
+    display:inline-block;padding:1px 8px;border-radius:6px;
+    font-family:monospace;font-size:0.78rem;
+    background:rgba(102,126,234,0.15);color:#a0b0ff;
+  }
+  .card code{
+    font-family:monospace;font-size:0.78rem;
+    background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px;color:#44ddff;
+  }
+
+  /* 架构图 */
+  .arch-diagram{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:12px;margin:16px 0;
+  }
+  .arch-box{
+    background:rgba(255,255,255,0.06);border-radius:12px;padding:16px;
+    text-align:center;border:1px solid rgba(255,255,255,0.08);
+    position:relative;
+  }
+  .arch-box .icon{font-size:2rem;margin-bottom:6px}
+  .arch-box .name{font-size:0.78rem;font-weight:600}
+  .arch-box .desc{font-size:0.68rem;color:#606080;margin-top:3px}
+  .arch-box.primary{border-color:rgba(102,126,234,0.3)}
+  .arch-box.primary .name{color:#a0b0ff}
+  .arch-arrow{text-align:center;font-size:1.2rem;color:#606080;padding:2px 0}
+
+  /* 性能指标行 */
+  .perf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .perf-card{
+    background:rgba(255,255,255,0.06);border-radius:12px;padding:14px;
+    text-align:center;border:1px solid rgba(255,255,255,0.08);
+  }
+  .perf-card .icon{font-size:1.5rem;margin-bottom:4px}
+  .perf-card .num{font-size:1.3rem;font-weight:700;color:#667eea;display:block}
+  .perf-card .label{font-size:0.68rem;color:#8080a0;margin-top:1px}
+
+  .tag{
+    display:inline-block;padding:2px 10px;border-radius:8px;
+    font-size:0.7rem;margin:2px;
+  }
+  .tag-blue{background:rgba(102,126,234,0.2);color:#a0b0ff}
+  .tag-green{background:rgba(76,175,80,0.2);color:#4caf50}
+  .tag-red{background:rgba(255,68,68,0.2);color:#ff6666}
+  .tag-yellow{background:rgba(255,200,50,0.2);color:#ffcc33}
+
+  .divider{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:14px 0}
+</style>
+</head>
+<body>
+  <div class="header">
+    <a class="back" href="/">←</a>
+    <h1>🏗️ 系统架构</h1>
+  </div>
+
+  <div class="content">
+    <!-- 简介 -->
+    <div class="section">
+      <div class="section-title"><span>📌 项目概况</span><span class="line"></span></div>
+      <div class="card">
+        <h3>AI 长者看护系统</h3>
+        <p>基于 D-Robotics <strong>RDK X5</strong> 边缘计算平台的智能看护系统，面向独居老人的安全监护需求。系统利用 BPU 加速的 YOLO11n-pose 模型实现实时人体姿态估计与摔倒检测，结合表情识别、AI 对话等功能，提供全方位的智能看护解决方案。</p>
+        <br>
+        <p><span class="tag tag-blue">RDK X5</span> <span class="tag tag-green">YOLO11n-pose</span> <span class="tag tag-red">BPU 加速</span> <span class="tag tag-yellow">边缘计算</span> <span class="tag tag-blue">DeepSeek</span></p>
+      </div>
+    </div>
+
+    <!-- 架构图 -->
+    <div class="section">
+      <div class="section-title"><span>🏛️ 系统架构</span><span class="line"></span></div>
+      <div class="card">
+        <h3>软件栈分层</h3>
+        <div class="arch-diagram">
+          <div class="arch-box primary"><div class="icon">📱</div><div class="name">Web 前端</div><div class="desc">Flask + JS 单页应用<br>PWA 离线支持</div></div>
+          <div class="arch-box primary"><div class="icon">⚡</div><div class="name">Flask API Server</div><div class="desc">端口 5050<br>路由 / 轮询 / SSE</div></div>
+          <div class="arch-box"><div class="icon">📷</div><div class="name">摄像头服务器</div><div class="desc">端口 8080<br>MJPEG 流 / 检测</div></div>
+          <div class="arch-box"><div class="icon">🧠</div><div class="name">YOLO11n-pose</div><div class="desc">BPU 推理<br>17 关键点姿态</div></div>
+          <div class="arch-box"><div class="icon">🎯</div><div class="name">摔倒检测</div><div class="desc">宽高比 + 垂直速度<br>三级过滤逻辑</div></div>
+          <div class="arch-box"><div class="icon">😊</div><div class="name">表情识别</div><div class="desc">面部 ROI 分析<br>7 类表情识别</div></div>
+        </div>
+        <p style="text-align:center;color:#606080;font-size:0.72rem">前端 ↦ Flask(5050) ↦ 摄像头(8080) ↦ YOLO(BPU) | DeepSeek API (云端)</p>
+      </div>
+    </div>
+
+    <!-- 硬件平台 -->
+    <div class="section">
+      <div class="section-title"><span>🖥️ 硬件平台</span><span class="line"></span></div>
+      <div class="card">
+        <h3>RDK X5 规格</h3>
+        <ul>
+          <li><strong>SoC:</strong> D-Robotics RDK X5 (8 核 ARM Cortex-A)</li>
+          <li><strong>BPU:</strong> 双核神经网络处理器，支持 INT8 量化推理</li>
+          <li><strong>内存:</strong> 8GB LPDDR4</li>
+          <li><strong>存储:</strong> 64GB eMMC (实际可用约 <span class="highlight" id="diskFreeLive">-- GB</span>)</li>
+          <li><strong>AI 算力:</strong> 约 10 TOPS (INT8)</li>
+          <li><strong>摄像头:</strong> USB 摄像头 / MIPI CSI 接口</li>
+          <li><strong>网络:</strong> 千兆以太网 + WiFi 6 + Bluetooth 5</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>📊 性能指标</h3>
+        <div class="perf-grid">
+          <div class="perf-card"><div class="icon">🎯</div><span class="num" id="liveFps">--</span><span class="label">检测帧率 (FPS)</span></div>
+          <div class="perf-card"><div class="icon">🧠</div><span class="num">~10</span><span class="label">BPU 算力 (TOPS)</span></div>
+          <div class="perf-card"><div class="icon">⚡</div><span class="num" id="liveCpu">--</span><span class="label">CPU 占用 (%)</span></div>
+          <div class="perf-card"><div class="icon">🌡️</div><span class="num" id="liveTemp">--</span><span class="label">芯片温度 (°C)</span></div>
+          <div class="perf-card"><div class="icon">📐</div><span class="num">480p</span><span class="label">推理分辨率</span></div>
+          <div class="perf-card"><div class="icon">⏱️</div><span class="num" id="liveUptime">--</span><span class="label">运行时长</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 技术决策 -->
+    <div class="section">
+      <div class="section-title"><span>🔧 关键技术决策</span><span class="line"></span></div>
+
+      <div class="card">
+        <h3>1️⃣ 单模型姿态 + 摔倒</h3>
+        <p>使用 <strong>YOLO11n-pose</strong> 单模型同时输出人体检测框 + 17 个 COCO 关键点，在 BPU 上 INT8 量化推理。相比"检测 + 姿态双模型"方案：</p>
+        <ul>
+          <li>✅ 推理延迟降低约 40%</li>
+          <li>✅ 内存占用减少约 30%</li>
+          <li>✅ 摔倒检测融合姿态信息（人体倾角 + 水平比例）</li>
+          <li>✅ 骨架可视化直接来源于关键点数据</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>2️⃣ 三级过滤摔倒检测</h3>
+        <p>为降低误报率，采用三级过滤策略：</p>
+        <ul>
+          <li><strong>第一级 (框形状):</strong> 人体框宽高比 > 1.3 (水平姿态)</li>
+          <li><strong>第二级 (速度):</strong> 垂直移动速度 > 阈值 (快速倒下)</li>
+          <li><strong>第三级 (姿态):</strong> 人体倾角 + 水平度验证</li>
+          <li><strong>持久化过滤:</strong> 连续 N 帧满足条件才触发报警</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>3️⃣ 无代理直连视频流</h3>
+        <p>摄像头服务器（8080 端口）的 HTTPerver 是单线程模型。Flask 代理 MJPEG 流会阻塞其他 API 请求。<strong>最终方案：</strong>浏览器直连摄像头服务器，Flask 仅提供 socket 代理作为备选。</p>
+      </div>
+
+      <div class="card">
+        <h3>4️⃣ 边缘 + 云端混合架构</h3>
+        <ul>
+          <li><strong>边缘 (RDK X5):</strong> 实时视频推理、摔倒检测、表情识别 — 延迟 &lt;50ms</li>
+          <li><strong>云端 (DeepSeek):</strong> AI 对话、心情日志总结 — 需要网络，但非实时任务</li>
+          <li><strong>告警:</strong> 本地第一时间触发，Server 酱微信推送作为辅助</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>5️⃣ PWA + mDNS 网络</h3>
+        <ul>
+          <li><strong>PWA:</strong> Service Worker 缓存应用外壳，离线时显示离线页面</li>
+          <li><strong>mDNS:</strong> 通过 <code>rdkx5.local:5050</code> 访问，永不丢 IP</li>
+          <li><strong>cpolar:</strong> 公网隧道，外网也能查看（延迟 ~5-6s 免费版）</li>
+          <li><strong>开机自启:</strong> systemd 服务 <code>fall-platform.service</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 项目文件结构 -->
+    <div class="section">
+      <div class="section-title"><span>📁 文件结构</span><span class="line"></span></div>
+      <div class="card">
+        <h3>项目目录</h3>
+        <pre style="font-family:monospace;font-size:0.75rem;color:#8080a0;line-height:1.7;overflow-x:auto">
+<span style="color:#44ddff">fall_ai_web/</span>
+├── app.py                  # Flask 后端（v2.0）
+├── config.json             # 用户配置
+├── alerts.json             # 告警记录持久化
+├── run.sh                  # 启动脚本
+├── <span style="color:#aabbff">templates/</span>
+│   ├── index.html          # 主页（应用入口）
+│   ├── camera.html         # 摄像头页面
+│   ├── dashboard.html      # ⭐ 系统仪表盘
+│   ├── alerts.html         # ⭐ 告警记录页
+│   ├── chat.html           # AI 对话页
+│   ├── mood.html           # 心情日志页
+│   ├── about.html          # ⭐ 系统架构页
+│   ├── settings.html       # 设置页
+│   └── offline.html        # PWA 离线页
+└── <span style="color:#aabbff">static/</span>
+    ├── manifest.json        # PWA 清单
+    └── sw.js               # Service Worker
+
+<span style="color:#44ddff">fall_detection/</span>
+├── fall_detection.py       # YOLO 检测 + MJPEG 服务器
+├── emotion/
+│   └── emotion_recognizer.py # 表情识别模块
+└── tx_voice_call.py        # 语音电话 (腾讯云)
+</pre>
+      </div>
+    </div>
+
+    <!-- 未来方向 -->
+    <div class="section">
+      <div class="section-title"><span>🚀 未来规划</span><span class="line"></span></div>
+      <div class="card">
+        <h3>Roadmap</h3>
+        <ul>
+          <li>📱 <strong>微信/短信告警推送</strong> — 摔倒第一时间通知家属</li>
+          <li>🎬 <strong>事件视频回放</strong> — 自动截取前后 5 秒视频片段</li>
+          <li>🗣️ <strong>语音呼救检测</strong> — 监听"救命"等关键词，双通道确认</li>
+          <li>🌙 <strong>夜视红外模式</strong> — 低光照自动增强</li>
+          <li>📋 <strong>日报自动生成</strong> — 每日看护报告 PDF 导出</li>
+          <li>📹 <strong>多摄像头轮巡</strong> — 展示多路处理能力</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // 实时刷新性能数据
+  function updateLiveStats() {
+    fetch('/api/system/info', {cache: 'no-store'})
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('diskFreeLive').textContent = (d.disk_free_gb || '--') + ' GB';
+        document.getElementById('liveFps').textContent = (d.detector?.fps || '--');
+        document.getElementById('liveCpu').textContent = (d.cpu_usage ?? '--');
+        document.getElementById('liveTemp').textContent = (d.temperature || '--');
+        document.getElementById('liveUptime').textContent = (d.uptime_hours || 0) + 'h';
+      })
+      .catch(() => {});
+  }
+
+  updateLiveStats();
+  setInterval(updateLiveStats, 3000);
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/static/sw.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>仪表盘 — RDK X5 智能平台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;
+    min-height:100vh;
+    background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+    color:#fff;
+  }
+  .header{
+    background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;
+  }
+  .header .back{color:#a0a0d0;text-decoration:none;font-size:1.2rem;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+  .header .back:hover{background:rgba(255,255,255,0.1)}
+  .header h1{font-size:1.05rem;font-weight:600}
+  .header .subtitle{color:#8080a0;font-size:0.75rem;margin-left:auto}
+  .content{max-width:800px;margin:0 auto;padding:16px}
+
+  /* ── 实时指标格子 ── */
+  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+  .metric-card{
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px;padding:16px;text-align:center;
+    position:relative;overflow:hidden;
+  }
+  .metric-card .label{font-size:0.7rem;color:#8080a0;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+  .metric-card .value{font-size:1.8rem;font-weight:700}
+  .metric-card .unit{font-size:0.75rem;color:#8080a0;margin-left:2px}
+  .metric-card .sub{font-size:0.65rem;color:#606080;margin-top:2px}
+  .metric-card .bar-bg{height:3px;border-radius:2px;background:rgba(255,255,255,0.06);margin-top:10px;overflow:hidden}
+  .metric-card .bar-fill{height:100%;border-radius:2px;transition:width .5s ease}
+
+  /* 颜色主题 */
+  .metric-cpu .value{color:#667eea}
+  .metric-cpu .bar-fill{background:linear-gradient(90deg,#667eea,#764ba2)}
+  .metric-mem .value{color:#ffdd44}
+  .metric-mem .bar-fill{background:linear-gradient(90deg,#ffdd44,#ff8800)}
+  .metric-disk .value{color:#44ddff}
+  .metric-disk .bar-fill{background:linear-gradient(90deg,#44ddff,#4488ff)}
+  .metric-temp .value{color:#ff6666}
+  .metric-temp .bar-fill{background:linear-gradient(90deg,#ff6666,#ff2244)}
+  .metric-fps .value{color:#44dd88}
+  .metric-people .value{color:#aabbff}
+  .metric-uptime .value{color:#88aadd;font-size:1.4rem}
+
+  /* 图表容器 */
+  .chart-card{
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px;padding:16px;margin-bottom:16px;
+  }
+  .chart-card .title{font-size:0.8rem;color:#8080a0;margin-bottom:10px}
+  .chart-card .chart-wrap{position:relative;width:100%;height:200px}
+
+  /* 检测统计卡片 */
+  .detection-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+  .stat-item{
+    background:rgba(255,255,255,0.06);border-radius:14px;padding:18px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .stat-item .num{font-size:2rem;font-weight:700;display:block}
+  .stat-item .desc{font-size:0.7rem;color:#8080a0;margin-top:2px}
+
+  .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .dot-green{background:#4caf50}
+  .dot-red{background:#ff4444;animation-duration:.5s!important}
+  .dot-gray{background:#666;animation:none!important}
+
+  /* 网络信息 */
+  .net-info{
+    background:rgba(255,255,255,0.06);border-radius:14px;padding:14px 18px;
+    border:1px solid rgba(255,255,255,0.08);font-size:0.78rem;line-height:1.8;
+    font-family:monospace;color:#a0a0c0;
+  }
+
+  @media(max-width:600px){
+    .metric-grid{grid-template-columns:repeat(2,1fr)}
+    .metric-card .value{font-size:1.3rem}
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <a class="back" href="/">←</a>
+    <h1>📊 系统仪表盘</h1>
+    <span class="subtitle" id="liveTime">--:--:--</span>
+  </div>
+
+  <div class="content">
+    <!-- 实时指标 -->
+    <div class="metric-grid">
+      <div class="metric-card metric-cpu">
+        <div class="label">CPU</div>
+        <div><span class="value" id="cpuVal">--</span><span class="unit">%</span></div>
+        <div class="sub" id="cpuFreq">-- MHz</div>
+        <div class="bar-bg"><div class="bar-fill" id="cpuBar" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card metric-mem">
+        <div class="label">内存</div>
+        <div><span class="value" id="memVal">--</span><span class="unit">%</span></div>
+        <div class="sub" id="memDetail">-- / -- MB</div>
+        <div class="bar-bg"><div class="bar-fill" id="memBar" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card metric-disk">
+        <div class="label">磁盘</div>
+        <div><span class="value" id="diskVal">--</span><span class="unit">%</span></div>
+        <div class="sub" id="diskDetail">-- / -- GB</div>
+        <div class="bar-bg"><div class="bar-fill" id="diskBar" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card metric-temp">
+        <div class="label">温度</div>
+        <div><span class="value" id="tempVal">--</span><span class="unit">°C</span></div>
+        <div class="sub" id="tempStatus">正常</div>
+        <div class="bar-bg"><div class="bar-fill" id="tempBar" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card metric-fps">
+        <div class="label">检测帧率</div>
+        <div><span class="value" id="fpsVal">--</span><span class="unit">FPS</span></div>
+        <div class="sub" id="detectorStatus">等待中</div>
+        <div class="bar-bg"><div class="bar-fill" id="fpsBar" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card metric-people">
+        <div class="label">检测人数</div>
+        <div><span class="value" id="peopleVal">--</span></div>
+        <div class="sub" id="totalDetections">-- 总检测帧</div>
+      </div>
+    </div>
+
+    <!-- 检测统计 -->
+    <div class="detection-stats">
+      <div class="stat-item" style="border-color:rgba(76,175,80,0.2)">
+        <span class="num" style="color:#4caf50" id="normalCount">0</span>
+        <span class="desc">🟢 正常运行</span>
+      </div>
+      <div class="stat-item" style="border-color:rgba(255,68,68,0.2)">
+        <span class="num" style="color:#ff4444" id="alarmCount">0</span>
+        <span class="desc">🔴 告警次数</span>
+      </div>
+      <div class="stat-item" style="border-color:rgba(102,126,234,0.2)">
+        <span class="num" style="color:#667eea" id="uptimeVal">0h</span>
+        <span class="desc">⏱️ 系统运行</span>
+      </div>
+      <div class="stat-item" style="border-color:rgba(255,200,50,0.2)">
+        <span class="num" style="color:#ffcc33" id="processCount">0</span>
+        <span class="desc">⚙️ 进程数</span>
+      </div>
+    </div>
+
+    <!-- CPU / 内存 实时曲线 -->
+    <div class="chart-card">
+      <div class="title">📈 CPU & 内存占用趋势（最近 60s）</div>
+      <div class="chart-wrap">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 温度曲线 -->
+    <div class="chart-card">
+      <div class="title">🌡️ 芯片温度趋势（最近 60s）</div>
+      <div class="chart-wrap">
+        <canvas id="tempChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 网络信息 -->
+    <div class="chart-card">
+      <div class="title">🌐 网络信息</div>
+      <div class="net-info" id="netInfo">加载中...</div>
+    </div>
+  </div>
+
+<script>
+  // ── 图表初始化 ──
+  let mainChart, tempChart;
+
+  function initCharts() {
+    const ctx1 = document.getElementById('mainChart').getContext('2d');
+    mainChart = new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'CPU %', data: [], borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', fill: true, tension: 0.3, pointRadius: 0 },
+          { label: '内存 %', data: [], borderColor: '#ffdd44', backgroundColor: 'rgba(255,221,68,0.1)', fill: true, tension: 0.3, pointRadius: 0 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 200 },
+        plugins: { legend: { labels: { color: '#8080a0', boxWidth: 12, padding: 10 } } },
+        scales: {
+          x: { ticks: { color: '#606080', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { min: 0, max: 100, ticks: { color: '#606080', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+      }
+    });
+
+    const ctx2 = document.getElementById('tempChart').getContext('2d');
+    tempChart = new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: '温度 °C', data: [], borderColor: '#ff6666', backgroundColor: 'rgba(255,102,102,0.1)', fill: true, tension: 0.3, pointRadius: 0 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 200 },
+        plugins: { legend: { labels: { color: '#8080a0', boxWidth: 12, padding: 10 } } },
+        scales: {
+          x: { ticks: { color: '#606080', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { min: 0, ticks: { color: '#606080', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+      }
+    });
+  }
+
+  // ── 更新指标 ──
+  function updateMetrics() {
+    fetch('/api/system/info', {cache: 'no-store'})
+      .then(r => r.json())
+      .then(d => {
+        // CPU
+        document.getElementById('cpuVal').textContent = d.cpu_usage ?? '--';
+        document.getElementById('cpuFreq').textContent = (d.cpu_freq || '--') + ' MHz';
+        document.getElementById('cpuBar').style.width = Math.min((d.cpu_usage || 0), 100) + '%';
+
+        // 内存
+        const memPct = d.mem_used_pct || 0;
+        document.getElementById('memVal').textContent = memPct;
+        document.getElementById('memDetail').textContent = `${Math.round(d.mem_total_mb - d.mem_avail_mb)} / ${Math.round(d.mem_total_mb)} MB`;
+        document.getElementById('memBar').style.width = Math.min(memPct, 100) + '%';
+
+        // 磁盘
+        const diskPct = d.disk_used_pct || 0;
+        document.getElementById('diskVal').textContent = diskPct;
+        document.getElementById('diskDetail').textContent = `${d.disk_total_gb - d.disk_free_gb} / ${d.disk_total_gb} GB`;
+        document.getElementById('diskBar').style.width = Math.min(diskPct, 100) + '%';
+
+        // 温度
+        const temp = d.temperature || 0;
+        document.getElementById('tempVal').textContent = temp;
+        document.getElementById('tempBar').style.width = Math.min(temp * 2, 100) + '%';
+        document.getElementById('tempStatus').textContent =
+          temp < 50 ? '❄️ 正常' : temp < 70 ? '🌤️ 温热' : temp < 85 ? '🔥 较高' : '⚠️ 过热';
+
+        // 检测系统
+        const det = d.detector || {};
+        document.getElementById('fpsVal').textContent = det.fps || '--';
+        document.getElementById('peopleVal').textContent = det.people ?? '--';
+        document.getElementById('fpsBar').style.width = Math.min((det.fps || 0) * 10, 100) + '%';
+        const detSt = document.getElementById('detectorStatus');
+        if (det.status === 'OFFLINE') {
+          detSt.innerHTML = '<span class="status-dot dot-gray"></span>离线';
+        } else if (det.status === 'NORMAL') {
+          detSt.innerHTML = '<span class="status-dot dot-green"></span>正常';
+        } else {
+          detSt.innerHTML = '<span class="status-dot dot-red"></span>' + (det.status || '未知');
+        }
+
+        // 运行时间
+        document.getElementById('uptimeVal').textContent = (d.uptime_hours || 0) + 'h';
+        document.getElementById('processCount').textContent = d.processes || 0;
+
+        // 时间
+        document.getElementById('liveTime').textContent = new Date().toLocaleTimeString();
+      })
+      .catch(() => {
+        document.querySelectorAll('.metric-card .value').forEach(el => el.textContent = '--');
+      });
+  }
+
+  // ── 历史曲线 ──
+  let historyData = { times: [], cpus: [], mems: [], temps: [] };
+
+  function updateChart() {
+    fetch('/api/system/history', {cache: 'no-store'})
+      .then(r => r.json())
+      .then(d => {
+        const pts = d.points || [];
+        if (pts.length === 0) return;
+
+        const labels = pts.map(p => p.time);
+        const cpus = pts.map(p => p.cpu);
+        const mems = pts.map(p => p.mem);
+        const temps = pts.map(p => p.temp);
+
+        mainChart.data.labels = labels;
+        mainChart.data.datasets[0].data = cpus;
+        mainChart.data.datasets[1].data = mems;
+        mainChart.update('none');
+
+        tempChart.data.labels = labels;
+        tempChart.data.datasets[0].data = temps;
+        tempChart.update('none');
+      })
+      .catch(() => {});
+  }
+
+  // ── 告警计数 ──
+  function updateAlertCounts() {
+    fetch('/api/alerts?limit=1&unread_only=1')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('alarmCount').textContent = d.total;
+      })
+      .catch(() => {});
+  }
+
+  // ── 网络信息 ──
+  function updateNetInfo() {
+    fetch('/api/system/info', {cache: 'no-store'})
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('netInfo').innerHTML = `
+          <div>📍 IP 地址: <span style="color:#a0b0ff">${d.ip}</span>:5050</div>
+          <div>🌐 BPU 信息: <span style="color:#a0b0ff">${d.bpu_info ? d.bpu_info.split('\n')[0] : 'N/A'}</span></div>
+          <div>📦 系统存储: ${d.disk_used_pct || 0}% 已用 (剩余 ${d.disk_free_gb || 0} GB)</div>
+          <div>⏱️ 运行时长: ${d.uptime_hours || 0} 小时</div>
+        `;
+      })
+      .catch(() => {});
+  }
+
+  // ── 初始化 ──
+  initCharts();
+  updateMetrics();
+  updateChart();
+  updateAlertCounts();
+  updateNetInfo();
+  setInterval(updateMetrics, 2000);
+  setInterval(updateChart, 2000);
+  setInterval(updateAlertCounts, 5000);
+  setInterval(updateNetInfo, 10000);
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/static/sw.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>

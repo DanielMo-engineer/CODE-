@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设备离线 — RDK X5</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+    color:#fff;padding:20px;
+  }
+  .icon{font-size:5rem;margin-bottom:20px;opacity:0.6}
+  h1{font-size:1.6rem;font-weight:600;margin-bottom:8px;color:#ccc}
+  p{color:#8080a0;font-size:0.9rem;margin-bottom:4px;text-align:center;line-height:1.6}
+  .retry-btn{
+    margin-top:24px;padding:10px 28px;border:1px solid rgba(255,255,255,0.2);
+    border-radius:20px;background:rgba(255,255,255,0.06);
+    color:#a0a0c0;font-size:0.9rem;cursor:pointer;
+    transition:all .3s;
+  }
+  .retry-btn:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.3);color:#fff}
+  .dot{
+    display:inline-block;width:8px;height:8px;border-radius:50%;
+    background:#f44;margin-right:6px;animation:pulse 1s infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .footer{position:fixed;bottom:20px;font-size:0.7rem;color:#505070}
+</style>
+</head>
+<body>
+  <div class="icon">📡</div>
+  <h1><span class="dot"></span>设备已离线</h1>
+  <p>RDK X5 目前不在线或无法连接</p>
+  <p style="font-size:0.8rem;color:#606080">请确认设备已开机并连接网络</p>
+  <button class="retry-btn" onclick="location.reload()">🔄 重新连接</button>
+  <div class="footer">RDK X5 智能平台 · 离线模式</div>
+</body>
+</html>

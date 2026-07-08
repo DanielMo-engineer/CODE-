@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link rel="manifest" href="/static/manifest.json">
+<title>心情日志 — RDK X5 智能平台</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;
+    min-height:100vh;
+    background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+    color:#fff;
+  }
+  .header{
+    background:rgba(255,255,255,0.06);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:14px 20px;
+    display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;
+  }
+  .header .back{
+    color:#a0a0d0;text-decoration:none;font-size:1.2rem;
+    width:36px;height:36px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .2s;
+  }
+  .header .back:hover{background:rgba(255,255,255,0.1)}
+  .header h1{font-size:1.1rem;font-weight:600}
+  .content{padding:16px;max-width:600px;margin:0 auto}
+
+  /* 统计卡片 */
+  .stats-card{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px;padding:20px;margin-bottom:16px;
+  }
+  .stats-card .title{font-size:0.8rem;color:#8080a0;margin-bottom:8px}
+  .stats-card .big-num{font-size:2.5rem;font-weight:700;background:linear-gradient(90deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+  .stat-tag{
+    padding:6px 12px;border-radius:10px;
+    background:rgba(255,255,255,0.06);font-size:0.85rem;
+    display:flex;align-items:center;gap:4px;
+  }
+
+  /* 心情分布条形图 */
+  .dist-bar-wrap{margin-top:12px}
+  .dist-item{
+    display:flex;align-items:center;gap:8px;margin-bottom:6px;
+    font-size:0.8rem;
+  }
+  .dist-item .label{width:80px;text-align:right;color:#a0a0c0}
+  .dist-item .bar-bg{
+    flex:1;height:16px;border-radius:8px;
+    background:rgba(255,255,255,0.06);overflow:hidden;
+  }
+  .dist-item .bar-fill{
+    height:100%;border-radius:8px;transition:width .6s ease;
+  }
+
+  /* 时间线 */
+  .timeline{position:relative;margin-top:8px}
+  .timeline::before{
+    content:'';position:absolute;left:12px;top:0;bottom:0;
+    width:2px;background:rgba(255,255,255,0.06);
+  }
+  .tl-entry{
+    display:flex;gap:12px;padding:8px 0;position:relative;
+    align-items:flex-start;
+  }
+  .tl-dot{
+    width:10px;height:10px;border-radius:50%;flex-shrink:0;
+    margin-top:4px;position:relative;z-index:1;
+  }
+  .tl-time{font-size:0.7rem;color:#606080;width:65px;flex-shrink:0;padding-top:2px}
+  .tl-emoji{font-size:1rem;flex-shrink:0}
+  .tl-text{font-size:0.8rem;color:#ccc;padding-top:2px}
+
+  /* 总结区域 */
+  .summary-box{
+    background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1));
+    border:1px solid rgba(102,126,234,0.2);
+    border-radius:16px;padding:20px;margin-top:16px;
+  }
+  .summary-box .summary-title{font-size:0.8rem;color:#8080a0;margin-bottom:8px}
+  .summary-box .summary-text{
+    font-size:0.9rem;line-height:1.8;color:#ddd;
+  }
+  .gen-btn{
+    margin-top:12px;padding:8px 20px;border:none;border-radius:10px;
+    background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;
+    font-size:0.85rem;cursor:pointer;
+    transition:opacity .3s;
+  }
+  .gen-btn:hover{opacity:0.85}
+  .gen-btn:disabled{opacity:0.4;cursor:not-allowed}
+  .gen-btn .spinner{
+    display:inline-block;width:12px;height:12px;margin-right:6px;
+    border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;
+    border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .empty-state{
+    text-align:center;padding:60px 20px;color:#606080;
+  }
+  .empty-state .icon{font-size:3rem;margin-bottom:12px}
+  .empty-state h3{font-size:1rem;margin-bottom:8px;color:#8080a0}
+  .empty-state p{font-size:0.8rem;line-height:1.6}
+
+  /* 删除按钮 */
+  .delete-btn{
+    margin-left:auto;padding:6px 12px;border:none;border-radius:8px;
+    background:rgba(255,60,60,0.15);color:#ff6666;
+    font-size:0.75rem;cursor:pointer;transition:all .3s;
+    display:flex;align-items:center;gap:4px;
+  }
+  .delete-btn:hover{background:rgba(255,60,60,0.3);color:#ff4444}
+  .delete-btn:disabled{opacity:0.4;cursor:not-allowed}
+  .delete-btn .icon{font-size:1rem}
+</style>
+</head>
+<body>
+  <div class="header">
+    <a class="back" href="/">←</a>
+    <h1>📊 心情日志</h1>
+    <button class="delete-btn" id="deleteBtn" onclick="confirmClear()">
+      <span class="icon">🗑️</span> 清空日志
+    </button>
+  </div>
+
+  <div class="content">
+    <!-- 实时情绪 -->
+    <div class="stats-card" id="realtimeCard" style="text-align:center;padding:30px 20px">
+      <div style="font-size:3rem;margin-bottom:8px" id="rtEmoji">😐</div>
+      <div style="font-size:1rem;color:#aaa" id="rtLabel">等待摄像头数据...</div>
+      <div style="font-size:0.7rem;color:#606080;margin-top:4px" id="rtConf">(未检测到人脸)</div>
+    </div>
+
+    <!-- 统计 -->
+    <div class="stats-card" id="statsCard">
+      <div class="title">📈 今日心情统计</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="big-num" id="totalCount">0</span>
+        <span style="color:#8080a0;font-size:0.8rem">条记录</span>
+      </div>
+      <div style="margin-top:4px;font-size:0.85rem">
+        主要情绪: <span id="dominantEmotion" style="color:#a0b0ff">--</span>
+      </div>
+      <div class="dist-bar-wrap" id="distBars"></div>
+    </div>
+
+    <!-- 时间线 -->
+    <div class="stats-card">
+      <div class="title">🕐 今日情绪时间线</div>
+      <div class="timeline" id="timeline">
+        <div class="empty-state">
+          <div class="icon">📭</div>
+          <h3>暂无记录</h3>
+          <p>当摄像头检测到人脸时，会自动记录心情数据</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI 总结 -->
+    <div class="summary-box" id="summaryBox">
+      <div class="summary-title">🤖 AI 心情总结</div>
+      <div class="summary-text" id="summaryText">点击下方按钮，AI 将为您生成今日心情总结</div>
+      <button class="gen-btn" id="genBtn" onclick="generateSummary()">
+        ✨ 生成心情总结
+      </button>
+    </div>
+  </div>
+
+<script>
+  const EMOJI = {
+    "angry": "😠", "disgust": "🤢", "fear": "😨",
+    "happy": "😊", "sad": "😢", "surprise": "😲", "neutral": "😐"
+  };
+  const EMOJI_LABELS = {
+    "angry": "生气", "disgust": "厌恶", "fear": "害怕",
+    "happy": "开心", "sad": "悲伤", "surprise": "惊讶", "neutral": "中性"
+  };
+  const BAR_COLORS = {
+    "😠 生气": "#ff4444", "🤢 厌恶": "#44bb44", "😨 害怕": "#ff66aa",
+    "😊 开心": "#ffdd44", "😢 悲伤": "#4488ff", "😲 惊讶": "#44ddff",
+    "😐 中性": "#888888"
+  };
+
+  // ── 实时情绪轮询（来自 8080 摄像头服务器的 /api/status） ──
+  let rtEmoji = document.getElementById("rtEmoji");
+  let rtLabel = document.getElementById("rtLabel");
+  let rtConf = document.getElementById("rtConf");
+
+  async function pollRealtimeEmotion() {
+    try {
+      const resp = await fetch("/api/status", {cache: "no-store"});
+      const data = await resp.json();
+      const em = data.emotion;
+      const cn = data.emotion_cn;
+      const conf = data.emotion_conf;
+
+      if (em && cn) {
+        rtEmoji.textContent = EMOJI[em] || "😐";
+        rtLabel.textContent = cn;
+        rtConf.textContent = `置信度: ${(conf * 100).toFixed(0)}%`;
+        // 不闪烁等待提示了
+        rtConf.style.color = "#8080a0";
+      } else {
+        rtEmoji.textContent = "👤";
+        rtLabel.textContent = "未检测到人脸";
+        rtConf.textContent = "靠近摄像头并正对镜头";
+        rtConf.style.color = "#606080";
+      }
+    } catch(e) {
+      rtEmoji.textContent = "❌";
+      rtLabel.textContent = "摄像头离线";
+      rtConf.textContent = "请检查摄像头连接";
+    }
+  }
+
+  // 加载数据
+  async function loadData() {
+    try {
+      const [statsRes, todayRes] = await Promise.all([
+        fetch("/api/mood/stats"),
+        fetch("/api/mood/today")
+      ]);
+      const stats = await statsRes.json();
+      const today = await todayRes.json();
+
+      renderStats(stats);
+      renderTimeline(today.entries);
+      loadSummary();
+    } catch(e) {
+      console.log("Load failed:", e);
+    }
+  }
+
+  function renderStats(stats) {
+    document.getElementById("totalCount").textContent = stats.total;
+    document.getElementById("dominantEmotion").textContent = stats.dominant;
+
+    const barWrap = document.getElementById("distBars");
+    barWrap.innerHTML = "";
+    const maxCount = Math.max(...Object.values(stats.distribution), 1);
+
+    for (const [label, count] of Object.entries(stats.distribution)) {
+      const pct = stats.total > 0 ? (count / stats.total * 100).toFixed(0) : 0;
+      const width = count / maxCount * 100;
+      const color = BAR_COLORS[label] || "#888";
+
+      const item = document.createElement("div");
+      item.className = "dist-item";
+      item.innerHTML = `
+        <span class="label">${label}</span>
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:${width}%;background:${color}"></div>
+        </div>
+        <span style="width:40px;color:#8080a0;font-size:0.75rem">${count} (${pct}%)</span>
+      `;
+      barWrap.appendChild(item);
+    }
+  }
+
+  function renderTimeline(entries) {
+    const tl = document.getElementById("timeline");
+    if (!entries || entries.length === 0) {
+      tl.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">📭</div>
+          <h3>暂无记录</h3>
+          <p>当摄像头检测到人脸时，会自动记录心情数据</p>
+        </div>
+      `;
+      return;
+    }
+
+    // 取最近 30 条
+    const recent = entries.slice(-30);
+    tl.innerHTML = "";
+    recent.forEach(e => {
+      const emoji = EMOJI[e.emotion] || "😐";
+      const time = e.time_str ? e.time_str.split(" ")[1] || e.time_str : "--";
+      const conf = e.confidence ? (e.confidence * 100).toFixed(0) + "%" : "";
+      const dot = document.createElement("div");
+      dot.className = "tl-entry";
+      dot.innerHTML = `
+        <span class="tl-dot" style="background:${BAR_COLORS[e.label_cn] || '#888'}"></span>
+        <span class="tl-time">${time}</span>
+        <span class="tl-emoji">${emoji}</span>
+        <span class="tl-text">${e.label_cn || e.emotion}${conf ? ' ('+conf+')' : ''}</span>
+      `;
+      tl.appendChild(dot);
+    });
+  }
+
+  async function loadSummary() {
+    try {
+      const resp = await fetch("/api/mood/summary", {method: "POST"});
+      const data = await resp.json();
+      if (data.summary) {
+        document.getElementById("summaryText").textContent = data.summary;
+      }
+    } catch(e) {}
+  }
+
+  async function generateSummary() {
+    const btn = document.getElementById("genBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 生成中...';
+
+    try {
+      const resp = await fetch("/api/mood/summary", {method: "POST"});
+      const data = await resp.json();
+      document.getElementById("summaryText").textContent = data.summary;
+    } catch(e) {
+      document.getElementById("summaryText").textContent = "😓 生成失败，请稍后重试";
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '✨ 重新生成总结';
+  }
+
+  // 定时刷新
+  pollRealtimeEmotion();
+  loadData();
+  setInterval(pollRealtimeEmotion, 2000);  // 每2秒刷新实时情绪
+  setInterval(loadData, 10000);  // 每10秒刷新统计/时间线
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("/static/sw.js").catch(() => {}));
+  }
+
+  // ── 一键删除日志 ──
+  async function confirmClear() {
+    if (!confirm("确定要清空所有心情日志吗？此操作不可恢复！")) return;
+
+    const btn = document.getElementById("deleteBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="icon">⏳</span> 清空中...';
+
+    try {
+      const resp = await fetch("/api/mood/clear", {method: "POST"});
+      const data = await resp.json();
+      if (data.ok) {
+        alert("✅ 心情日志已清空");
+        loadData();  // 刷新页面数据
+      } else {
+        alert("❌ 清空失败: " + (data.message || "未知错误"));
+      }
+    } catch(e) {
+      alert("❌ 网络错误: " + e.message);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<span class="icon">🗑️</span> 清空日志';
+  }
+</script>
+</body>
+</html>
