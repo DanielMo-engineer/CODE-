@@ -1,0 +1,14 @@
+[Unit]
+Description=RDK X5 Fall Detection + Buzzer Alert
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/root/.openclaw/workspace/fall_detection/.env
+ExecStart=/usr/bin/python3.10 /root/.openclaw/workspace/fall_detection/fall_detection.py --camera-width 640 --camera-height 640 --camera-port 0 --fps 30 --score 0.25 --kpt-conf 0.3 --confirm 10 --cooldown 5
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
